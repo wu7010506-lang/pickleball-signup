@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>皮克球管理後台</title>
+<style>
+:root{
+  --bg:#f4f6f1;--card:#fff;--ink:#1d2420;--sub:#5f6b63;--line:#e1e6df;
+  --brand:#2f7d4f;--brand-ink:#fff;--brand-soft:#e3f1e8;--warn:#b5651d;--warn-soft:#fbeedd;--bad:#b42318;--bad-soft:#fde8e6;
+  --radius:14px;
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#121614;--card:#1b211e;--ink:#e8eee9;--sub:#9aa8a0;--line:#2c3530;
+    --brand:#5cbf85;--brand-ink:#0d1a12;--brand-soft:#1f3328;--warn:#e6a35c;--warn-soft:#3a2b1b;--bad:#ff8a80;--bad-soft:#3a1f1d}
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif}
+.wrap{max-width:720px;margin:0 auto;padding:16px 16px 64px}
+header{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+h1{font-size:22px;margin:4px 0}
+h2{font-size:17px;margin:0 0 8px}
+h3{font-size:15px;margin:12px 0 4px;color:var(--sub)}
+a{color:var(--brand)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin-top:12px}
+.muted{color:var(--sub);font-size:14px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end}
+.row>label{flex:1 1 120px}
+label{display:block;font-size:13px;color:var(--sub);margin-top:8px}
+input,select{width:100%;font:inherit;padding:9px 10px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink)}
+input[type=checkbox]{width:18px;height:18px}
+.btn{border:0;border-radius:10px;padding:10px 14px;font:inherit;font-weight:700;background:var(--brand);color:var(--brand-ink);cursor:pointer;white-space:nowrap}
+.btn.ghost{background:transparent;color:var(--brand);border:1px solid var(--brand);font-weight:600}
+.btn.small{padding:6px 10px;font-size:14px}
+.btn:disabled{opacity:.5;cursor:default}
+.x{border:0;background:none;color:var(--bad);font:inherit;font-size:13px;cursor:pointer;text-decoration:underline;padding:0 4px}
+.chip{display:inline-block;font-size:12px;padding:1px 8px;border-radius:99px;margin-left:6px;vertical-align:2px}
+.chip.open{background:var(--brand-soft);color:var(--brand)}
+.chip.no{background:var(--warn-soft);color:var(--warn)}
+.chip.hide{background:var(--bad-soft);color:var(--bad)}
+.tag{display:inline-block;font-size:12px;padding:0 6px;border-radius:6px;margin-left:4px;background:var(--brand-soft);color:var(--brand)}
+.tag.w{background:var(--warn-soft);color:var(--warn)}
+ol{margin:0;padding-left:26px}
+li{padding:2px 0}
+details summary{cursor:pointer;font-weight:600;color:var(--brand);margin-top:10px}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:14px;max-width:calc(100vw - 32px);opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.show{opacity:1}
+.toast.err{background:var(--bad);color:#fff}
+.sess-head{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.big{font-size:17px;font-weight:700}
+.empty{color:var(--sub);font-size:14px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>🏓 管理後台</h1>
+    <div id="top" class="muted"></div>
+  </header>
+  <div id="app"><div class="card muted">載入中…</div></div>
+</div>
+<div id="toast" class="toast" role="status"></div>
+
+<script>
+var API = "https://script.google.com/macros/s/AKfycbxckO77LnbNrp2Wmk6HteEfGGlPAbvK5zE7NROaw0-tCeTuxX6xhTFIoOEt7Wwogfel/exec";
+var SIGNUP_URL = location.href.replace(/admin\.html.*$/, '');
+var WD = '日一二三四五六';
+var pw = load('pw',''), data = null, busy = false;
+
+function load(k,d){ try{ var v=localStorage.getItem('pbadmin_'+k); return v?JSON.parse(v):d; }catch(e){ return d; } }
+function save(k,v){ try{ v==null?localStorage.removeItem('pbadmin_'+k):localStorage.setItem('pbadmin_'+k,JSON.stringify(v)); }catch(e){} }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]}); }
+function $(id){ return document.getElementById(id); }
+function toast(m, err){ var t=$('toast'); t.textContent=m; t.className='toast show'+(err?' err':''); clearTimeout(toast.t); toast.t=setTimeout(function(){t.className='toast'},2600); }
+
+function api(action, d){
+  busy = true;
+  return fetch(API, {method:'POST', credentials:'omit', body: JSON.stringify({pw:pw, action:action, data:d||{}})})
+    .then(function(r){ return r.json(); })
+    .catch(function(){ throw new Error('連線失敗，請稍後再試'); })
+    .then(function(j){ busy=false; if(!j.ok) throw new Error(j.error); data=j.data; render(); return j.data; },
+          function(e){ busy=false; throw e; });
+}
+
+function md(s){ var p=s.date.split('-'); return (+p[1])+'/'+(+p[2]); }
+function roc(s){ var p=s.date.split('-'); return (p[0]-1911)+'.'+(+p[1])+'.'+(+p[2]); }
+var CAT = {'單次':'單次','包場':'包場','教學':'教學練習'};
+
+function loginView(msg){
+  $('top').innerHTML = '';
+  $('app').innerHTML = '<form class="card" id="login"><h2>登入</h2>'
+    + '<p class="muted">輸入管理密碼。這台裝置會記住，下次不用再輸入。</p>'
+    + '<label for="pw">管理密碼</label><input type="password" id="pw" autocomplete="current-password" required>'
+    + '<div style="margin-top:12px"><button class="btn" type="submit">登入</button></div>'
+    + (msg?'<p class="muted" style="color:var(--bad)">'+esc(msg)+'</p>':'')
+    + '</form>';
+}
+
+function render(){
+  if(!data) return;
+  $('top').innerHTML = '<a href="'+esc(SIGNUP_URL)+'" target="_blank" rel="noopener">報名頁</a> · <button class="x" id="logout" style="color:var(--sub)">登出</button>';
+  var openForms = {}; document.querySelectorAll('details[open]').forEach(function(d){ openForms[d.id]=1; });
+  var h = '';
+  // 新增場次
+  var today = new Date(); var pad=function(x){return (x<10?'0':'')+x};
+  var ds = today.getFullYear()+'-'+pad(today.getMonth()+1)+'-'+pad(today.getDate());
+  h += '<div class="card"><details id="d-add"'+(openForms['d-add']?' open':'')+'><summary>＋ 新增一場（臨時加開）</summary>'
+    + '<form id="addSession">'
+    + '<div class="row"><label>日期<input type="date" name="date" min="'+ds+'" required></label>'
+    + '<label>開始<input type="time" name="start" value="20:00" required></label>'
+    + '<label>結束<input type="time" name="end" value="22:00" required></label></div>'
+    + '<label>地點<select name="venue">'+data.venues.map(function(v){return '<option>'+esc(v)+'</option>'}).join('')+'<option value="__other">其他（自己輸入）</option></select></label>'
+    + '<input name="venueOther" placeholder="輸入新地點" style="margin-top:6px;display:none">'
+    + '<label>場地說明<input name="court" placeholder="例如：BCD場"></label>'
+    + '<div class="row"><label>單次費用<input type="number" name="price" value="200" min="0"></label>'
+    + '<label>人數上限<input type="number" name="cap" value="20" min="1"></label>'
+    + '<label>教學名額<input type="number" name="tcap" value="5" min="0"></label>'
+    + '<label>教學加價<input type="number" name="tfee" value="100" min="0"></label></div>'
+    + '<label>公告（選填，會顯示在報名頁）<input name="note" placeholder="例如：臨時加開！"></label>'
+    + '<div style="margin-top:12px"><button class="btn" type="submit">新增場次</button></div>'
+    + '</form><p class="muted">每週固定的場次會自動產生，不用在這裡加。</p></details></div>';
+
+  if(!data.sessions.length) h += '<div class="card empty">目前沒有場次。</div>';
+  data.sessions.forEach(function(s){
+    var st = s.open==='隱藏'?'<span class="chip hide">已隱藏</span>':s.open==='否'?'<span class="chip no">暫停報名</span>':s.closed?'<span class="chip no">已截止</span>':'<span class="chip open">開放中</span>';
+    h += '<div class="card" data-sid="'+esc(s.id)+'">'
+      + '<div class="sess-head"><div><div class="big">'+md(s)+'（'+esc(s.wd)+'） '+esc(s.start)+'–'+esc(s.end)+st+'</div>'
+      + '<div class="muted">'+esc(s.venue)+(s.court?' '+esc(s.court):'')+'</div>'
+      + '<div class="muted">已報名 '+s.head+' / '+s.cap+' 人 · 教學 '+s.teach+' / '+s.tcap+'</div></div>'
+      + '<div><button class="btn ghost small" data-copy="'+esc(s.id)+'">複製群組公告</button></div></div>';
+    ['單次','包場','教學'].forEach(function(c){
+      var L = s.lists[c]; if(!L.length) return;
+      h += '<h3>▼ '+CAT[c]+'（'+L.length+'）</h3><ol>'+L.map(function(e){
+        return '<li>'+esc(e.name)+(e.racket?'<span class="tag">借拍</span>':'')+(e.wait?'<span class="tag w">候補</span>':'')
+          +(e.note?' <span class="muted">'+esc(e.note)+'</span>':'')
+          +' <button class="x" data-del="'+esc(e.mine)+'" data-name="'+esc(e.name)+'">刪除</button></li>';
+      }).join('')+'</ol>';
+    });
+    if(!s.lists['單次'].length && !s.lists['包場'].length && !s.lists['教學'].length) h += '<p class="empty">還沒有人報名</p>';
+    h += '<details id="d-reg-'+esc(s.id)+'"'+(openForms['d-reg-'+s.id]?' open':'')+'><summary>幫人報名</summary><form class="addReg">'
+      + '<div class="row"><label>名字<input name="name" maxlength="20" required></label>'
+      + '<label>類別<select name="cat"><option>單次</option><option>包場</option><option value="教學">教學練習</option></select></label></div>'
+      + '<label style="display:flex;gap:8px;align-items:center;color:var(--ink)"><input type="checkbox" name="racket" style="width:18px"> 需要借球拍</label>'
+      + '<div style="margin-top:8px"><button class="btn small" type="submit">加入名單</button></div></form></details>';
+    h += '<details id="d-edit-'+esc(s.id)+'"'+(openForms['d-edit-'+s.id]?' open':'')+'><summary>修改這一場（停打、公告、人數）</summary><form class="editSession">'
+      + '<label>狀態<select name="open">'
+      + [['是','開放報名'],['否','暫停報名（還看得到）'],['隱藏','隱藏（停打，報名頁不顯示）']].map(function(o){return '<option value="'+o[0]+'"'+(s.open===o[0]?' selected':'')+'>'+o[1]+'</option>'}).join('')
+      + '</select></label>'
+      + '<label>公告<input name="note" value="'+esc(s.note)+'" placeholder="例如：A場地已包場，請到 BCD 場"></label>'
+      + '<div class="row"><label>人數上限<input type="number" name="cap" value="'+s.cap+'" min="1"></label>'
+      + '<label>教學名額<input type="number" name="tcap" value="'+s.tcap+'" min="0"></label>'
+      + '<label>結束時間<input type="time" name="end" value="'+esc(s.end)+'"></label></div>'
+      + '<label>場地說明<input name="court" value="'+esc(s.court)+'"></label>'
+      + '<div style="margin-top:12px"><button class="btn small" type="submit">儲存修改</button></div></form></details>';
+    h += '</div>';
+  });
+  h += '<div class="card"><details id="d-pw"'+(openForms['d-pw']?' open':'')+'><summary>更改管理密碼</summary><form id="changePw">'
+    + '<label>新密碼（至少 6 碼）<input type="password" name="newPw" minlength="6" autocomplete="new-password" required></label>'
+    + '<div style="margin-top:12px"><button class="btn small" type="submit">更改密碼</button></div></form></details>'
+    + '<p class="muted">要改每週固定的場次（星期、時間、地點），請到試算表的「固定場次」分頁。</p></div>';
+  $('app').innerHTML = h;
+}
+
+function groupText(s){
+  var t = '📣打球囉！！！\n📅 日期：'+roc(s)+' （星期'+s.wd+'）\n📍 地點：'+s.venue+(s.court?' '+s.court:'')+'\n\n⏰ 時間： '+s.start.replace(':','：')+'-'+s.end.replace(':','：')+'\n';
+  ['單次','包場','教學'].forEach(function(c){
+    var title = c==='單次'?'單次($'+s.price+')':c==='包場'?'包場':'教學練習（需+'+s.tfee+'元）';
+    t += '\n▼ '+title+'\n'; var L = s.lists[c];
+    if(!L.length) t += '1.\n';
+    L.forEach(function(e,i){ t += (i+1)+'. '+e.name+(e.racket?'（借拍）':'')+(e.wait?'（候補）':'')+'\n'; });
+  });
+  if(s.note) t += '\n⚠️ '+s.note+'\n';
+  t += '\n❗️❗️需要借球拍，請幫忙在後面備注❗️❗️\n\n🔥場地容納最高'+s.cap+'位🔥\n\n👉 報名請點：'+SIGNUP_URL+'\n';
+  return t;
+}
+
+function fail(e){ toast(e.message||'發生錯誤', true); if(/密碼/.test(e.message||'')){ pw=''; save('pw',null); loginView(e.message); } }
+function lockBtn(form){ var b=form.querySelector('button[type=submit]'); if(b){ b.disabled=true; } return function(){ if(b) b.disabled=false; }; }
+
+document.addEventListener('submit', function(ev){
+  var f = ev.target; ev.preventDefault();
+  if(f.id==='login'){
+    pw = $('pw').value; var un = lockBtn(f);
+    api('list').then(function(){ save('pw',pw); toast('已登入'); }).catch(function(e){ un(); pw=''; loginView(e.message); });
+    return;
+  }
+  var fd = new FormData(f), o = {}; fd.forEach(function(v,k){ o[k]=v; });
+  var un = lockBtn(f), sid = (f.closest('[data-sid]')||{}).dataset; sid = sid && sid.sid;
+  var p;
+  if(f.id==='addSession'){
+    if(o.venue==='__other') o.venue = o.venueOther; delete o.venueOther;
+    p = api('addSession', o).then(function(){ toast('已新增 '+o.date+' 的場次'); });
+  } else if(f.classList.contains('addReg')){
+    o.sessionId = sid; o.racket = !!f.racket.checked;
+    p = api('addReg', o).then(function(){ toast('已加入 '+o.name); });
+  } else if(f.classList.contains('editSession')){
+    o.id = sid;
+    p = api('updateSession', o).then(function(){ toast('已儲存'); });
+  } else if(f.id==='changePw'){
+    p = api('changePw', o).then(function(){ pw=o.newPw; save('pw',pw); toast('密碼已更改'); });
+  }
+  if(p) p.catch(function(e){ un(); fail(e); });
+});
+
+document.addEventListener('change', function(ev){
+  if(ev.target.name==='venue'){ var o=ev.target.form.venueOther; o.style.display = ev.target.value==='__other'?'block':'none'; o.required = ev.target.value==='__other'; }
+});
+
+document.addEventListener('click', function(ev){
+  var t = ev.target;
+  if(t.id==='logout'){ pw=''; save('pw',null); data=null; loginView(); return; }
+  if(t.dataset.del){
+    if(!confirm('確定刪除「'+t.dataset.name+'」這筆報名？')) return;
+    t.disabled = true;
+    api('deleteReg', {token:t.dataset.del}).then(function(){ toast('已刪除'); }).catch(function(e){ t.disabled=false; fail(e); });
+    return;
+  }
+  if(t.dataset.copy){
+    var s = data.sessions.find(function(x){return x.id===t.dataset.copy}); var text = groupText(s);
+    (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject()).then(function(){ toast('已複製，可以貼到群組'); },
+      function(){ prompt('複製下面的文字：', text); });
+  }
+});
+
+if(pw){ api('list').catch(function(e){ pw=''; save('pw',null); loginView(e.message); }); } else loginView();
+setInterval(function(){ if(pw && data && !busy && !document.hidden && !document.querySelector('form :focus')) api('list').catch(function(){}); }, 60000);
+</script>
+</body>
+</html>
