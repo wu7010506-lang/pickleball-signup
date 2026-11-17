@@ -4,6 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>TPA台灣匹克球聯盟 x QuickIsland球嶼</title>
+<meta name="description" content="匹克球報名：每週一南湖國小、週二與週六龍門國中，線上報名、額滿自動候補。">
+<meta property="og:type" content="website">
+<meta property="og:title" content="TPA台灣匹克球聯盟 x QuickIsland球嶼">
+<meta property="og:description" content="匹克球報名：每週一南湖國小、週二與週六龍門國中，線上報名、額滿自動候補。">
+<meta property="og:url" content="https://wu7010506-lang.github.io/pickleball-signup/">
 <style>
 :root{
   --bg:#f4f6f1;--card:#fff;--ink:#1d2420;--sub:#5f6b63;--line:#e1e6df;
@@ -66,7 +71,7 @@ dialog textarea{width:100%;height:50vh;font:14px/1.5 inherit;border:1px solid va
 <body>
 <div class="wrap">
   <h1>TPA台灣匹克球聯盟 x QuickIsland球嶼</h1>
-  <div id="demo" class="demo" hidden>預覽模式：資料只存在這個分頁，重新整理就會消失。</div>
+  <div id="demo" class="demo" hidden></div>
   <div id="tabs" class="tabs" role="tablist" aria-label="場次"></div>
   <div id="main"><div class="loading">載入中…</div></div>
 </div>
@@ -148,10 +153,11 @@ function render(){
     document.getElementById('nm').value=keep.nm; document.getElementById('nt').value=keep.nt; document.getElementById('rk').checked=keep.rk;
     var r=document.querySelector('input[name=cat][value="'+keep.cat+'"]'); if(r) r.checked=true; },0);
   var tabs = document.getElementById('tabs'), main = document.getElementById('main');
-  if(!d.sessions.length){ tabs.innerHTML=''; main.innerHTML='<div class="card empty">目前沒有開放的場次。</div>'; return; }
-  var s = d.sessions.find(function(x){return x.id===state.sel}) || d.sessions.find(function(x){return !x.closed}) || d.sessions[0];
+  var list = d.sessions.filter(function(x){ return !x.closed; }); // 已開打／截止的場次不顯示
+  if(!list.length){ tabs.innerHTML=''; main.innerHTML='<div class="card empty">目前沒有開放的場次。</div>'; return; }
+  var s = list.find(function(x){return x.id===state.sel}) || list[0];
   state.sel = s.id;
-  tabs.innerHTML = d.sessions.map(function(x){
+  tabs.innerHTML = list.map(function(x){
     return '<button class="tab" role="tab" aria-selected="'+(x.id===s.id)+'" data-id="'+esc(x.id)+'"><b>'+md(x)+'（'+esc(x.wd)+'）</b><small>'+esc(venueShort(x.venue))+' '+esc(x.start)+' · '+(x.closed?'已截止':x.head+'/'+x.cap)+'</small></button>';
   }).join('');
   var pct = Math.min(100, Math.round(s.head/s.cap*100)), full = s.head>=s.cap;
@@ -261,7 +267,7 @@ document.addEventListener('submit', function(ev){
   }).catch(function(e){ state.busy=false; setMsg(errText(e),'err'); render(); });
 });
 
-if(!IS_GAS && !window.PB_API) document.getElementById('demo').hidden = false;
+if(!IS_GAS && !window.PB_API){ var dm=document.getElementById('demo'); dm.textContent='預覽模式：資料只存在這個分頁，重新整理就會消失。'; dm.hidden=false; }
 refresh();
 setInterval(function(){ if(!state.busy && !document.hidden && !document.querySelector('#form :focus')) refresh(); }, 30000);
 </script>
