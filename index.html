@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>皮克球報名</title>
+<style>
+:root{
+  --bg:#f4f6f1;--card:#fff;--ink:#1d2420;--sub:#5f6b63;--line:#e1e6df;
+  --brand:#2f7d4f;--brand-ink:#fff;--brand-soft:#e3f1e8;--warn:#b5651d;--warn-soft:#fbeedd;--bad:#b42318;
+  --radius:14px;
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#121614;--card:#1b211e;--ink:#e8eee9;--sub:#9aa8a0;--line:#2c3530;
+    --brand:#5cbf85;--brand-ink:#0d1a12;--brand-soft:#1f3328;--warn:#e6a35c;--warn-soft:#3a2b1b;--bad:#ff8a80}
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif}
+.wrap{max-width:640px;margin:0 auto;padding:16px 16px 48px}
+h1{font-size:22px;margin:4px 0 12px}
+.demo{background:var(--warn-soft);color:var(--warn);border-radius:10px;padding:8px 12px;font-size:14px;margin-bottom:12px}
+.tabs{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;margin:0 -16px;padding-left:16px;padding-right:16px;scrollbar-width:none}
+.tab{flex:0 0 auto;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:12px;padding:8px 12px;text-align:left;cursor:pointer;font:inherit;min-width:104px}
+.tab b{display:block;font-size:16px}
+.tab small{color:var(--sub);font-size:12px}
+.tab[aria-selected=true]{background:var(--brand);border-color:var(--brand);color:var(--brand-ink)}
+.tab[aria-selected=true] small{color:inherit;opacity:.85}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin-top:12px}
+.info p{margin:2px 0}
+.info .big{font-size:18px;font-weight:700}
+.meter{height:8px;background:var(--line);border-radius:99px;overflow:hidden;margin:10px 0 4px}
+.meter i{display:block;height:100%;background:var(--brand)}
+.muted{color:var(--sub);font-size:14px}
+.note{background:var(--warn-soft);color:var(--warn);border-radius:8px;padding:6px 10px;margin-top:8px;font-size:14px}
+h2{font-size:16px;margin:0 0 6px;display:flex;justify-content:space-between;align-items:baseline}
+h2 span{font-weight:400;color:var(--sub);font-size:14px}
+ol{margin:0 0 14px;padding-left:28px}
+li{padding:3px 0}
+li.wait{color:var(--sub)}
+.tag{display:inline-block;font-size:12px;padding:0 6px;border-radius:6px;margin-left:6px;vertical-align:1px}
+.tag.r{background:var(--brand-soft);color:var(--brand)}
+.tag.w{background:var(--warn-soft);color:var(--warn)}
+.x{border:0;background:none;color:var(--bad);font:inherit;font-size:13px;cursor:pointer;margin-left:6px;text-decoration:underline}
+.empty{color:var(--sub);font-size:14px;margin:0 0 14px}
+label{display:block;font-size:14px;color:var(--sub);margin:10px 0 4px}
+input[type=text]{width:100%;font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink)}
+.seg{display:flex;gap:6px;flex-wrap:wrap}
+.seg label{margin:0;flex:1 1 0;min-width:88px}
+.seg input{position:absolute;opacity:0}
+.seg span{display:block;text-align:center;border:1px solid var(--line);border-radius:10px;padding:9px 6px;color:var(--ink);cursor:pointer;font-size:15px}
+.seg input:checked+span{background:var(--brand-soft);border-color:var(--brand);color:var(--brand);font-weight:700}
+.seg input:focus-visible+span{outline:2px solid var(--brand)}
+.check{display:flex;align-items:center;gap:8px;color:var(--ink);font-size:15px;margin-top:12px}
+.check input{width:18px;height:18px}
+.btn{width:100%;margin-top:16px;border:0;border-radius:12px;padding:13px;font:inherit;font-weight:700;background:var(--brand);color:var(--brand-ink);cursor:pointer}
+.btn:disabled{opacity:.5;cursor:default}
+.btn.ghost{background:transparent;color:var(--brand);border:1px solid var(--brand);margin-top:10px;font-weight:600}
+.msg{margin-top:10px;font-size:14px;min-height:1.5em}
+.msg.err{color:var(--bad)}
+.msg.ok{color:var(--brand)}
+dialog{border:0;border-radius:var(--radius);padding:16px;width:min(560px,calc(100vw - 32px));background:var(--card);color:var(--ink)}
+dialog textarea{width:100%;height:50vh;font:14px/1.5 inherit;border:1px solid var(--line);border-radius:10px;padding:10px;background:var(--bg);color:var(--ink)}
+.loading{text-align:center;color:var(--sub);padding:40px 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🏓 皮克球報名</h1>
+  <div id="demo" class="demo" hidden>預覽模式：資料只存在這個分頁，重新整理就會消失。</div>
+  <div id="tabs" class="tabs" role="tablist" aria-label="場次"></div>
+  <div id="main"><div class="loading">載入中…</div></div>
+</div>
+
+<dialog id="dlg">
+  <p style="margin:0 0 8px">已產生群組公告文字，長按全選複製：</p>
+  <textarea id="dlgText" readonly></textarea>
+  <button class="btn" onclick="document.getElementById('dlg').close()">關閉</button>
+</dialog>
+
+<script>var PB_API = "https://script.google.com/macros/s/AKfycbxckO77LnbNrp2Wmk6HteEfGGlPAbvK5zE7NROaw0-tCeTuxX6xhTFIoOEt7Wwogfel/exec";</script>
+<script>
+/* ===== API：在 Apps Script 上用 google.script.run，本機開啟時用模擬資料 ===== */
+var IS_GAS = typeof google !== 'undefined' && google.script && google.script.run;
+function call(fn){
+  var args = [].slice.call(arguments,1);
+  return new Promise(function(ok,fail){
+    if (window.PB_API) {
+      fetch(PB_API+'?action='+fn+'&p='+encodeURIComponent(JSON.stringify(args)), {credentials:'omit'})
+        .then(function(r){ return r.json(); })
+        .then(function(j){ j.ok ? ok(j.data) : fail(new Error(j.error)); })
+        .catch(function(){ fail(new Error('連線失敗，請稍後再試')); });
+    }
+    else if (IS_GAS) { var r = google.script.run.withSuccessHandler(ok).withFailureHandler(function(e){fail(e)}); r[fn].apply(r,args); }
+    else { try { ok(MOCK[fn].apply(null,args)); } catch(e){ fail(e); } }
+  });
+}
+
+var MOCK = (function(){
+  var WD='日一二三四五六', tpl=[
+    {wd:1,venue:'台北市 內湖區 南湖國小 活動中心3樓',court:'4、5、6場共3面場',start:'18:00',end:'22:00',cap:24,fixed:[]},
+    {wd:2,venue:'台北市 大安區 龍門國中 活動中心3樓',court:'BCD場（面講台右側，A場地已包場）',start:'20:00',end:'22:00',cap:20,fixed:['Kevin']},
+    {wd:6,venue:'台北市 大安區 龍門國中 活動中心3樓',court:'',start:'17:00',end:'19:00',cap:20,fixed:[]}];
+  var ses=[], regs=[], n=0;
+  function pad(x){return (x<10?'0':'')+x}
+  for (var i=0;i<=14;i++){ var d=new Date(Date.now()+i*864e5), ds=d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+    tpl.forEach(function(t){ if(t.wd!==d.getDay())return; var id=ds+'_'+t.start.replace(':','');
+      ses.push({id:id,date:ds,wd:WD[t.wd],venue:t.venue,court:t.court,start:t.start,end:t.end,price:'200',cap:t.cap,tcap:5,tfee:'100',note:''});
+      t.fixed.forEach(function(nm){regs.push({sid:id,cat:'包場',name:nm,racket:false,note:'固定包場',token:'t'+(n++)})}); }); }
+  if (ses[0]) ['Pablo','Hanson','Annis'].forEach(function(nm,i){regs.push({sid:ses[0].id,cat:'單次',name:nm,racket:i===1,note:'',token:'t'+(n++)})});
+  function snap(tokens){ var mine={}; (tokens||[]).forEach(function(t){mine[t]=1});
+    var now=new Date(), nowS=now.getFullYear()+'-'+pad(now.getMonth()+1)+'-'+pad(now.getDate())+' '+pad(now.getHours())+':'+pad(now.getMinutes());
+    return {url:location.href, sessions:ses.map(function(s){
+      var lists={'單次':[],'包場':[],'教學':[]}, head=0, teach=0, played={}, only={};
+      regs.filter(function(r){return r.sid===s.id}).forEach(function(r){ var k=r.name.toLowerCase(), ok;
+        if(r.cat==='教學'){ if(played[k]){ok=teach<s.tcap; if(ok){teach++;played[k]--}} else {ok=teach<s.tcap&&head<s.cap; if(ok){teach++;head++;only[k]=(only[k]||0)+1}} }
+        else if(only[k]){only[k]--;ok=true} else {ok=head<s.cap; if(ok){head++;played[k]=(played[k]||0)+1}}
+        lists[r.cat].push({name:r.name,racket:r.racket,note:r.note,wait:!ok,mine:mine[r.token]?r.token:''}); });
+      return Object.assign({},s,{closed:nowS>=s.date+' '+s.start,head:head,teach:teach,lists:lists}); })}; }
+  return {
+    getData:function(t){return snap(t)},
+    signup:function(f){ if(!String(f.name||'').trim()) throw new Error('請填名字'); var tk='t'+(n++);
+      regs.push({sid:f.sessionId,cat:f.cat,name:f.name.trim().slice(0,20),racket:!!f.racket,note:(f.note||'').trim().slice(0,40),token:tk});
+      return {token:tk,data:snap((f.tokens||[]).concat(tk))}; },
+    cancel:function(tk,tokens){ regs=regs.filter(function(r){return r.token!==tk}); return snap(tokens); }
+  };
+})();
+
+/* ===== 本機記憶（名字、我的報名取消碼） ===== */
+function load(k,d){ try{ var v=localStorage.getItem('pb_'+k); return v?JSON.parse(v):d; }catch(e){ return d; } }
+function save(k,v){ try{ localStorage.setItem('pb_'+k,JSON.stringify(v)); }catch(e){} }
+var tokens = load('tokens',[]), me = load('me',{name:'',racket:false});
+
+/* ===== 畫面 ===== */
+var state = {data:null, sel:load('sel',''), busy:false, msg:'', msgType:''};
+var CAT_LABEL = {'單次':'單次','包場':'包場','教學':'教學練習'};
+
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]}); }
+function md(s){ var p=s.date.split('-'); return (+p[1])+'/'+(+p[2]); }
+function roc(s){ var p=s.date.split('-'); return (p[0]-1911)+'.'+(+p[1])+'.'+(+p[2]); }
+function venueShort(v){ var m=v.match(/(\S+?(國小|國中|高中|中心|球館|公園))/); return m?m[1]:v; }
+
+function render(){
+  var d = state.data; if(!d) return;
+  var keep = null, nmEl = document.getElementById('nm');
+  if(nmEl && !state.msgType) keep = { nm:nmEl.value, nt:document.getElementById('nt').value, rk:document.getElementById('rk').checked,
+    cat:(document.querySelector('input[name=cat]:checked')||{}).value };
+  setTimeout(function(){ if(!keep||!document.getElementById('nm')) return;
+    document.getElementById('nm').value=keep.nm; document.getElementById('nt').value=keep.nt; document.getElementById('rk').checked=keep.rk;
+    var r=document.querySelector('input[name=cat][value="'+keep.cat+'"]'); if(r) r.checked=true; },0);
+  var tabs = document.getElementById('tabs'), main = document.getElementById('main');
+  if(!d.sessions.length){ tabs.innerHTML=''; main.innerHTML='<div class="card empty">目前沒有開放的場次。</div>'; return; }
+  var s = d.sessions.find(function(x){return x.id===state.sel}) || d.sessions.find(function(x){return !x.closed}) || d.sessions[0];
+  state.sel = s.id;
+  tabs.innerHTML = d.sessions.map(function(x){
+    return '<button class="tab" role="tab" aria-selected="'+(x.id===s.id)+'" data-id="'+esc(x.id)+'"><b>'+md(x)+'（'+esc(x.wd)+'）</b><small>'+esc(venueShort(x.venue))+' '+esc(x.start)+' · '+(x.closed?'已截止':x.head+'/'+x.cap)+'</small></button>';
+  }).join('');
+  var pct = Math.min(100, Math.round(s.head/s.cap*100)), full = s.head>=s.cap;
+  var h = '<div class="card info">'
+    + '<p class="big">'+md(s)+'（星期'+esc(s.wd)+'） '+esc(s.start)+'–'+esc(s.end)+'</p>'
+    + '<p>📍 '+esc(s.venue)+(s.court?' '+esc(s.court):'')+'</p>'
+    + '<p class="muted">單次 $'+esc(s.price)+'　教學練習 +$'+esc(s.tfee)+'（名額 '+s.tcap+'）</p>'
+    + '<div class="meter"><i style="width:'+pct+'%"></i></div>'
+    + '<p class="muted">已報名 '+s.head+' / '+s.cap+' 人'+(full?'，之後報名為候補':'')+'</p>'
+    + (s.note?'<div class="note">'+esc(s.note)+'</div>':'')
+    + '</div>';
+  h += '<div class="card">';
+  ['單次','包場','教學'].forEach(function(c){
+    var L = s.lists[c];
+    h += '<h2>▼ '+CAT_LABEL[c]+'<span>'+L.filter(function(e){return !e.wait}).length+(c==='教學'?' / '+s.tcap:'')+' 人</span></h2>';
+    if(!L.length){ h+='<p class="empty">還沒有人</p>'; return; }
+    h += '<ol>'+L.map(function(e){
+      return '<li class="'+(e.wait?'wait':'')+'">'+esc(e.name)
+        +(e.racket?'<span class="tag r">借拍</span>':'')
+        +(e.wait?'<span class="tag w">候補</span>':'')
+        +(e.note?' <span class="muted">'+esc(e.note)+'</span>':'')
+        +(e.mine&&!s.closed?'<button class="x" data-cancel="'+esc(e.mine)+'">取消</button>':'')+'</li>';
+    }).join('')+'</ol>';
+  });
+  h += '</div>';
+  if(s.closed){
+    h += '<div class="card empty">這個場次已截止報名。</div>';
+  } else {
+    h += '<form class="card" id="form" autocomplete="off">'
+      + '<h2>我要報名</h2>'
+      + '<label for="nm">名字（幫朋友報就寫「名字+朋友」）</label><input type="text" id="nm" maxlength="20" required value="'+esc(me.name)+'">'
+      + '<label>類別</label><div class="seg">'
+      + ['單次','包場','教學'].map(function(c,i){return '<label><input type="radio" name="cat" value="'+c+'"'+(i===0?' checked':'')+'><span>'+CAT_LABEL[c]+(c==='教學'?' +'+esc(s.tfee):'')+'</span></label>'}).join('')
+      + '</div>'
+      + '<label class="check"><input type="checkbox" id="rk"'+(me.racket?' checked':'')+'> 需要借球拍</label>'
+      + '<label for="nt">備註（選填）</label><input type="text" id="nt" maxlength="40" placeholder="例如：會晚到 30 分">'
+      + '<button class="btn" type="submit"'+(state.busy?' disabled':'')+'>'+(state.busy?'送出中…':(full?'報名候補':'送出報名'))+'</button>'
+      + '<div class="msg '+state.msgType+'" role="status">'+esc(state.msg)+'</div>'
+      + '</form>';
+  }
+  h += '<button class="btn ghost" id="copy">複製這場的群組公告文字</button>';
+  main.innerHTML = h;
+}
+
+function groupText(s, url){
+  var t = '📣打球囉！！！\n📅 日期：'+roc(s)+' （星期'+s.wd+'）\n📍 地點：'+s.venue+(s.court?' '+s.court:'')+'\n\n⏰ 時間： '+s.start.replace(':','：')+'-'+s.end.replace(':','：')+'\n';
+  ['單次','包場','教學'].forEach(function(c){
+    var title = c==='單次'?'單次($'+s.price+')':c==='包場'?'包場':'教學練習（需+'+s.tfee+'元）';
+    t += '\n▼ '+title+'\n';
+    var L = s.lists[c];
+    if(!L.length) t += '1.\n';
+    L.forEach(function(e,i){ t += (i+1)+'. '+e.name+(e.racket?'（借拍）':'')+(e.wait?'（候補）':'')+'\n'; });
+  });
+  t += '\n❗️❗️需要借球拍，請幫忙在後面備注❗️❗️\n\n🔥場地容納最高'+s.cap+'位🔥\n';
+  if(url) t += '\n👉 報名請點：'+url+'\n';
+  return t;
+}
+
+function setMsg(m,type){ state.msg=m; state.msgType=type||''; }
+function errText(e){ return (e && e.message) ? e.message.replace(/^Error:\s*/,'') : '發生錯誤，請稍後再試'; }
+
+function refresh(){
+  return call('getData', tokens).then(function(d){ state.data=d; prune(); render(); })
+    .catch(function(e){ if(!state.data) document.getElementById('main').innerHTML='<div class="card msg err">'+esc(errText(e))+'</div>'; });
+}
+function prune(){ // 清掉已不存在的取消碼
+  var live={}; state.data.sessions.forEach(function(s){ ['單次','包場','教學'].forEach(function(c){ s.lists[c].forEach(function(e){ if(e.mine) live[e.mine]=1; }); }); });
+  var t2 = tokens.filter(function(t){return live[t]}); if(t2.length!==tokens.length){ tokens=t2; save('tokens',tokens); }
+}
+
+document.addEventListener('click', function(ev){
+  var tab = ev.target.closest('.tab');
+  if(tab){ state.sel=tab.dataset.id; save('sel',state.sel); setMsg(''); render(); return; }
+  var c = ev.target.closest('[data-cancel]');
+  if(c){
+    if(!confirm('確定要取消這筆報名？')) return;
+    c.disabled = true;
+    call('cancel', c.dataset.cancel, tokens).then(function(d){ state.data=d; prune(); setMsg('已取消','ok'); render(); })
+      .catch(function(e){ setMsg(errText(e),'err'); render(); });
+    return;
+  }
+  if(ev.target.id==='copy'){
+    var s = state.data.sessions.find(function(x){return x.id===state.sel}); if(!s) return;
+    var text = groupText(s, window.PB_API ? location.origin+location.pathname : state.data.url);
+    var show = function(){ var d=document.getElementById('dlg'); document.getElementById('dlgText').value=text; d.showModal(); document.getElementById('dlgText').select(); };
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(function(){ ev.target.textContent='✅ 已複製，可以貼到群組'; setTimeout(render,1800); }, show);
+    } else show();
+  }
+});
+
+document.addEventListener('submit', function(ev){
+  if(ev.target.id!=='form') return;
+  ev.preventDefault();
+  var name = document.getElementById('nm').value.trim();
+  if(!name){ setMsg('請填名字','err'); render(); return; }
+  var f = { sessionId: state.sel, name: name, cat: (document.querySelector('input[name=cat]:checked')||{}).value||'單次',
+            racket: document.getElementById('rk').checked, note: document.getElementById('nt').value, tokens: tokens };
+  me = {name:name, racket:f.racket}; save('me', me);
+  state.busy = true; setMsg(''); render();
+  call('signup', f).then(function(r){
+    tokens.push(r.token); save('tokens', tokens);
+    state.data = r.data; state.busy=false;
+    var s = r.data.sessions.find(function(x){return x.id===f.sessionId});
+    var mine = s && s.lists[f.cat].find(function(e){return e.mine===r.token});
+    setMsg(mine && mine.wait ? '已登記候補，有人取消會自動遞補' : '報名成功！', 'ok'); render();
+  }).catch(function(e){ state.busy=false; setMsg(errText(e),'err'); render(); });
+});
+
+if(!IS_GAS && !window.PB_API) document.getElementById('demo').hidden = false;
+refresh();
+setInterval(function(){ if(!state.busy && !document.hidden && !document.querySelector('#form :focus')) refresh(); }, 30000);
+</script>
+</body>
+</html>
